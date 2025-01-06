@@ -3,9 +3,9 @@
 This repository is a supplemental option for those who don't feel comfortable working with either our TypeScript or Python problems. It should be noted that the Python project was used as the source of truth for implementation details, and so this may not represent 100% idiomatic Java (sorry).
 
 > If you want, you may also complete this challenge in: 
-> [Python](https://gitlab.com/limehome/interviews/backend-challenge-python)
+> [Python](https://github.com/limehome/backend-challenge-python)
 > or
-> [TypeScript](https://gitlab.com/limehome/interviews/backend-challenge-typescript)
+> [TypeScript](https://github.com/limehome/backend-challenge-typescript)
 
 ## Context
 
