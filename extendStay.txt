@@ -1,0 +1,12 @@
+Extend Stay – System Behavior:
+
+1. If the unit is available for the extended period, the booking is updated with the new total nights.
+
+2. If there’s a conflict with another booking, the system throws:
+  "Unit is not available for extension."
+
+3. If the booking ID is invalid or not found, it throws:
+   "Booking not found"
+
+Notes:
+Availability is checked via a SQL query that compares checkInDate and numberOfNights to identify overlapping bookings.

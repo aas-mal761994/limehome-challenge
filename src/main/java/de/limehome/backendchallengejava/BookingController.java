@@ -43,7 +43,7 @@ public class BookingController {
         try {
             Booking updated = bookingService.extendStay(id, request.getAdditionalNights());
             return ResponseEntity.ok(updated);
-        } catch (BookingService.UnableToExtend e) {
+        } catch (BookingService.UnableToExtend | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
