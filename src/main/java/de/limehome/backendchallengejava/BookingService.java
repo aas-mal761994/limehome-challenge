@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -16,6 +17,12 @@ public class BookingService {
 
     public class UnableToBook extends Exception {
         UnableToBook(String reason) {
+            super(reason);
+        }
+    }
+
+    public class UnableToExtend extends Exception {
+        UnableToExtend(String reason) {
             super(reason);
         }
     }
@@ -55,12 +62,34 @@ public class BookingService {
         long numBookingsForCurrentUnit = bookings
                 .stream()
                 .filter(dbBooking -> dbBooking.unitID.equals(booking.unitID))
-                .filter(dbBooking -> dbBooking.checkInDate.equals(booking.checkInDate))
+                .filter(dbBooking ->
+                        dbBooking.checkInDate.equals(booking.checkInDate)
+                                || dbBooking.checkInDate.plusDays(dbBooking.numberOfNights).isAfter(booking.checkInDate))
                 .count();
         if (numBookingsForCurrentUnit > 0) {
             throw new UnableToBook("For the given check-in date, the unit is already occupied");
         }
 
         return true;
+    }
+
+    public Booking extendStay(Long id, int additionalNights) throws UnableToExtend{
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String currentEnd = booking.checkInDate.plusDays(booking.numberOfNights).format(formatter);
+        String newEnd = booking.checkInDate.plusDays(booking.numberOfNights).plusDays(additionalNights).format(formatter);
+
+        // Check for overlaps in the extended range
+        List<Booking> conflicts = bookingRepository.findConflictingBookings(
+                booking.unitID, currentEnd, newEnd, booking.getId());
+
+        if (!conflicts.isEmpty()) {
+            throw new UnableToExtend("Unit is not available for extension.");
+        }
+
+        booking.numberOfNights = booking.numberOfNights + additionalNights;
+        return bookingRepository.save(booking);
+
     }
 }

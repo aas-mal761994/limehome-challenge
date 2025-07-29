@@ -9,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -138,6 +139,56 @@ class BackendChallengeIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest())
                 .andExpect(MockMvcResultMatchers.content().string("For the given check-in date, the unit is already occupied"));
+    }
+
+    @Test
+    void extendStaySuccessfully() throws Exception {
+        Booking originalBooking = new Booking(GUEST_A_UNIT_1);
+        ReflectionTestUtils.setField(originalBooking, "id", 1L);
+
+        Mockito.when(bookingRepository.findById(1L)).thenReturn(java.util.Optional.of(originalBooking));
+        Mockito.when(bookingRepository.findConflictingBookings(
+                Mockito.eq("1"),
+                Mockito.any(String.class),
+                Mockito.any(String.class),
+                Mockito.eq(1L)
+        )).thenReturn(List.of());
+        Mockito.when(bookingRepository.save(Mockito.any(Booking.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExtendBookingRequest request = new ExtendBookingRequest();
+        request.setAdditionalNights(2);
+
+        this.mockMvc.perform(MockMvcRequestBuilders.
+                        post("/bookings/1/extend")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+    }
+
+    @Test
+    void extendStayFailsDueToConflict() throws Exception {
+        Booking originalBooking = new Booking(GUEST_A_UNIT_1);
+        ReflectionTestUtils.setField(originalBooking, "id", 1L);  // set booking ID manually
+
+        Mockito.when(bookingRepository.findById(1L)).thenReturn(java.util.Optional.of(originalBooking));
+        Mockito.when(bookingRepository.findConflictingBookings(
+                Mockito.eq("1"),
+                Mockito.any(String.class),
+                Mockito.any(String.class),
+                Mockito.eq(1L)
+        )).thenReturn(List.of(new Booking(GUEST_B_UNIT_1))); // Conflict exists
+
+        ExtendBookingRequest request = new ExtendBookingRequest();
+        request.setAdditionalNights(3);
+
+        this.mockMvc.perform(MockMvcRequestBuilders.
+                        post("/bookings/1/extend")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.content().string("Unit is not available for extension."));
     }
 
 }
